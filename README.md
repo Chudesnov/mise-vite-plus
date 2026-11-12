@@ -51,6 +51,11 @@ The plugin replicates the behavior of the official [Vite+ installer](https://vit
 2. **PreInstall** — Resolves the platform-specific npm tarball URL (macOS/Linux, x64/arm64).
 3. **PostInstall** — Extracts the `vp` binary, creates `vpx`/`vpr` multicall symlinks, writes a `package.json` wrapper, runs `vp install --silent` to bootstrap JS dependencies, and sets up the `~/.vite-plus/current` symlink.
 4. **EnvKeys** — Adds `<install-dir>/bin` to `PATH`.
+5. **PostInstall** — Runs `vp env setup --env-only` with `VP_SELF_SETUP_NO_MODIFY_PATH=1`, which writes the env/shim files *only inside VP_HOME* (`~/.vite-plus/`) and never modifies user shell startup files (`~/.zshenv`, `~/.zshrc`, `~/.bash_profile`, …).
+
+   Without that variable, `vp env setup` performs a global "self-setup": it appends `source .../env` lines to your shell startup files and installs global shims for `node`, `npm`, `pnpm`, `yarn`, and `bun` on `PATH`, shadowing the same tools managed by mise. This plugin deliberately disables that so Vite+ stays project-scoped: `vp` is available only in projects whose `mise.toml` declares `vite-plus`, and your global `node`/`pnpm`/etc. keep resolving through mise.
+
+   If you *do* want Vite+ to manage your global JS environment, run `vp env setup` manually once and follow the printed instructions.
 
 ## Development
 

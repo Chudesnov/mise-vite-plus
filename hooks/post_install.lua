@@ -62,14 +62,18 @@ function PLUGIN:PostInstall(ctx)
     end
 
     -- Step 5: Write wrapper package.json
-    local pkg_json = '{\n'
+    local pkg_json = "{\n"
         .. '  "name": "vp-global",\n'
-        .. '  "version": "' .. version .. '",\n'
+        .. '  "version": "'
+        .. version
+        .. '",\n'
         .. '  "private": true,\n'
         .. '  "dependencies": {\n'
-        .. '    "vite-plus": "' .. version .. '"\n'
-        .. '  }\n'
-        .. '}\n'
+        .. '    "vite-plus": "'
+        .. version
+        .. '"\n'
+        .. "  }\n"
+        .. "}\n"
     local pkg_file = assert(io.open(file.join_path(path, "package.json"), "w"))
     pkg_file:write(pkg_json)
     pkg_file:close()
@@ -81,9 +85,21 @@ function PLUGIN:PostInstall(ctx)
 
     -- Step 7: Run vp install --silent to bootstrap JS dependencies
     local install_log = file.join_path(path, "install.log")
-    local install_cmd = 'cd "' .. path .. '" && CI=true "' .. dest_binary .. '" install --silent > "' .. install_log .. '" 2>&1'
+    local install_cmd = 'cd "'
+        .. path
+        .. '" && CI=true "'
+        .. dest_binary
+        .. '" install --silent > "'
+        .. install_log
+        .. '" 2>&1'
     if is_windows then
-        install_cmd = 'cd /d "' .. path .. '" && set CI=true && "' .. dest_binary .. '" install --silent > "' .. install_log .. '" 2>&1'
+        install_cmd = 'cd /d "'
+            .. path
+            .. '" && set CI=true && "'
+            .. dest_binary
+            .. '" install --silent > "'
+            .. install_log
+            .. '" 2>&1'
     end
     local install_result = os.execute(install_cmd)
     if install_result ~= 0 then
@@ -109,9 +125,17 @@ function PLUGIN:PostInstall(ctx)
     end
 
     -- Step 9: Run vp env setup --env-only
-    local env_cmd = '"' .. dest_binary .. '" env setup --env-only > /dev/null 2>&1'
+    -- VP_SELF_SETUP_NO_MODIFY_PATH=1 keeps the setup scoped to VP_HOME: without
+    -- it, `vp env setup` performs a "self-setup" that appends `source .../env`
+    -- lines to the user's ~/.zshenv, ~/.zshrc, and ~/.bash_profile, polluting
+    -- the global shell with global shims that shadow node/npm/pnpm/yarn/bun.
+    -- When installed via mise, `vp` reaches users through the PATH that the
+    -- EnvKeys hook injects for projects that declare vite-plus — global shell
+    -- integration is neither needed nor wanted.
     if is_windows then
-        env_cmd = '"' .. dest_binary .. '" env setup --env-only > nul 2>&1'
+        env_cmd = 'set VP_SELF_SETUP_NO_MODIFY_PATH=1&& "' .. dest_binary .. '" env setup --env-only > nul 2>&1'
+    else
+        env_cmd = 'VP_SELF_SETUP_NO_MODIFY_PATH=1 "' .. dest_binary .. '" env setup --env-only > /dev/null 2>&1'
     end
     local env_result = os.execute(env_cmd)
     if env_result ~= 0 then
